@@ -31,3 +31,4 @@ button.primary{background:var(--accent);color:#19131a;border:0}button.secondary{
 .drop-slot.filled{min-width:86px;padding:8px 12px;background:#453444;border:1px solid var(--accent);color:var(--text);font-weight:700}.word-chip{user-select:none;-webkit-user-select:none;-webkit-user-drag:element;cursor:grab}.word-chip.chosen{outline:2px solid var(--accent)}
 
 .word-chip.chosen{outline:3px solid var(--accent)}
+.puzzle-slot.filled{cursor:grab}.puzzle-slot.filled:active{cursor:grabbing}.puzzle-piece{cursor:grab}.puzzle-piece:active{cursor:grabbing}

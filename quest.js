@@ -38,24 +38,32 @@ const QUEST=[
 
 const app=document.getElementById("app");
 let current=Number(localStorage.getItem("quest_current")||0);
-let musicIndex=0,music=new Audio(),musicStarted=false,musicPaused=false;
+let musicIndex=Number(localStorage.getItem("quest_music_index")||0)%CONFIG.music.length,music=new Audio(),musicStarted=false,musicPaused=false;
 let memory={cards:[],open:[],matched:[],lock:false},puzzle={slots:[],bank:[]};
+
+function tryStartMusicFromGesture(){
+ if(!musicStarted&&!musicPaused)startMusic();
+}
+["pointerdown","keydown","touchstart"].forEach(evt=>document.addEventListener(evt,tryStartMusicFromGesture,{capture:true,passive:true}));
 
 function save(){if(CONFIG.saveProgress)localStorage.setItem("quest_current",String(current))}
 function next(){if(current<QUEST.length-1){current++;save();render();scrollTo(0,0)}else{localStorage.setItem("quest_completed","1");completed()}}
 function startMusic(){
  if(musicStarted)return;
- musicStarted=true;
  music.volume=CONFIG.musicVolume;
  music.onended=()=>{
    musicIndex=(musicIndex+1)%CONFIG.music.length;
+   localStorage.setItem("quest_music_index",String(musicIndex));
    music.src="media/music/"+CONFIG.music[musicIndex];
    music.currentTime=0;
-   music.play().catch(()=>{});
+   const p=music.play();
+   if(p&&p.catch)p.catch(()=>{});
  };
  music.src="media/music/"+CONFIG.music[musicIndex];
  music.currentTime=0;
- music.play().catch(()=>{});
+ const p=music.play();
+ if(p&&typeof p.then==="function")p.then(()=>{musicStarted=true}).catch(()=>{musicStarted=false});
+ else musicStarted=true;
 }
 function playMusic(){
  if(!musicStarted||musicPaused)return;
@@ -160,28 +168,69 @@ function drawPuzzle(el,q,t){
  const s=el.querySelector("#stage"),n=t.rows*t.cols;
  s.innerHTML=`<p>${t.text}</p>
  <div class="puzzle" style="grid-template-columns:repeat(${t.cols},1fr)">
- ${puzzle.slots.map((v,i)=>`<button class="puzzle-slot" data-slot="${i}">${v===null?"":`<img src="media/images/${t.tilesPath}/${String(v).padStart(2,"0")}.jpg" alt="">`}</button>`).join("")}
+ ${puzzle.slots.map((v,i)=>`<button class="puzzle-slot ${v===null?"":"filled"}" data-slot="${i}" draggable="${v!==null}">${v===null?"":`<img draggable="false" src="media/images/${t.tilesPath}/${String(v).padStart(2,"0")}.jpg" alt="">`}</button>`).join("")}
  </div>
- <p class="small">Выбери деталь, затем нажми клетку, куда её поставить.</p>
+ <p class="small">Выбери деталь, затем нажми клетку, куда её поставить. Собранные детали можно перетаскивать друг на друга.</p>
  <div class="puzzle-bank" style="grid-template-columns:repeat(${t.cols},1fr)">
- ${puzzle.bank.map(v=>`<button class="puzzle-piece" data-piece="${v}"><img src="media/images/${t.tilesPath}/${String(v).padStart(2,"0")}.jpg" alt=""></button>`).join("")}
+ ${puzzle.bank.map(v=>`<button class="puzzle-piece" data-piece="${v}" draggable="true"><img draggable="false" src="media/images/${t.tilesPath}/${String(v).padStart(2,"0")}.jpg" alt=""></button>`).join("")}
  </div>
  <div class="message" id="msg"></div>`;
  let selected=null;
- s.querySelectorAll(".puzzle-piece").forEach(b=>b.onclick=()=>{
-   selected=+b.dataset.piece;
+ const checkSolved=()=>puzzle.slots.every((v,i)=>v===i);
+ const finishIfSolved=()=>{if(checkSolved()){setTimeout(()=>success(el,q),400);return true}return false};
+ const setChosen=(piece)=>{
+   selected=piece;
    s.querySelectorAll(".puzzle-piece").forEach(x=>x.classList.remove("chosen"));
-   b.classList.add("chosen");
- });
- s.querySelectorAll(".puzzle-slot").forEach(b=>b.onclick=()=>{
-   if(selected===null)return;
-   const slot=+b.dataset.slot;
+   const bankBtn=s.querySelector(`.puzzle-piece[data-piece="${piece}"]`);
+   if(bankBtn)bankBtn.classList.add("chosen");
+ };
+ const moveBankPieceToSlot=(piece,slot)=>{
    const previous=puzzle.slots[slot];
-   if(previous!==null && !puzzle.bank.includes(previous))puzzle.bank.push(previous);
-   puzzle.bank=puzzle.bank.filter(x=>x!==selected);
-   puzzle.slots[slot]=selected;
-   selected=null;
-   if(puzzle.slots.every((v,i)=>v===i)){setTimeout(()=>success(el,q),400);return;}
+   puzzle.slots[slot]=piece;
+   puzzle.bank=puzzle.bank.filter(x=>x!==piece);
+   if(previous!==null)puzzle.bank.push(previous);
+ };
+ s.querySelectorAll(".puzzle-piece").forEach(b=>{
+   const piece=+b.dataset.piece;
+   b.onclick=()=>setChosen(piece);
+   b.addEventListener("dragstart",e=>{e.dataTransfer.setData("text/plain",`bank:${piece}`);e.dataTransfer.effectAllowed="move";});
+ });
+ s.querySelectorAll(".puzzle-slot").forEach(b=>{
+   const slot=+b.dataset.slot;
+   b.onclick=()=>{
+     if(selected===null)return;
+     moveBankPieceToSlot(selected,slot);
+     selected=null;
+     if(!finishIfSolved())drawPuzzle(el,q,t);
+   };
+   if(puzzle.slots[slot]!==null){
+     b.addEventListener("dragstart",e=>{e.dataTransfer.setData("text/plain",`slot:${slot}`);e.dataTransfer.effectAllowed="move";});
+   }
+   b.addEventListener("dragover",e=>e.preventDefault());
+   b.addEventListener("drop",e=>{
+     e.preventDefault();
+     const data=e.dataTransfer.getData("text/plain");
+     if(!data)return;
+     const [kind,raw]=data.split(":");
+     if(kind==="bank"){
+       moveBankPieceToSlot(+raw,slot);
+     }else if(kind==="slot"){
+       const from=+raw;if(from===slot)return;
+       [puzzle.slots[from],puzzle.slots[slot]]=[puzzle.slots[slot],puzzle.slots[from]];
+     }
+     if(!finishIfSolved())drawPuzzle(el,q,t);
+   });
+ });
+ const bank=s.querySelector(".puzzle-bank");
+ bank.addEventListener("dragover",e=>e.preventDefault());
+ bank.addEventListener("drop",e=>{
+   e.preventDefault();
+   const data=e.dataTransfer.getData("text/plain");
+   if(!data.startsWith("slot:"))return;
+   const from=+data.split(":")[1],piece=puzzle.slots[from];
+   if(piece===null)return;
+   puzzle.slots[from]=null;
+   if(!puzzle.bank.includes(piece))puzzle.bank.push(piece);
    drawPuzzle(el,q,t);
  });
 }
