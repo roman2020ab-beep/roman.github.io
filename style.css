@@ -28,3 +28,5 @@ button.primary{background:var(--accent);color:#19131a;border:0}button.secondary{
 .word-chip{width:auto;min-height:44px;margin:0;padding:9px 13px;border-radius:12px;background:#2a2a39;color:var(--text);border:1px solid #48485a;cursor:grab}
 .word-chip.placed{background:#453444}.word-chip.chosen{outline:2px solid var(--accent)}
 .phrase-hint{margin-top:10px}
+
+.drop-slot.filled{min-width:86px;padding:8px 12px;background:#453444;border:1px solid var(--accent);color:var(--text);font-weight:700}.word-chip{user-select:none;-webkit-user-select:none;-webkit-user-drag:element;cursor:grab}.word-chip.chosen{outline:2px solid var(--accent)}
