@@ -12,10 +12,10 @@ const QUEST=[
  {type:"welcome",title:"Наше маленькое приключение",video:"intro.mp4",text:"Добро пожаловать. Всё начинается с этого видео."},
  {type:"chapter",number:1,title:"Глава 1",
   quiz:{question:"Что бы я выбрал?",options:["Целый год ходить на работу и ничего там не делать","Готовый диплом","Купить военник за 5 миллионов рублей","Запас чипсов на 2 года"],correct:3,feedback:["я и так на работе ничего не делаю","лучше сам сделаю","Я считаю это слишком дорого","чипсы нынче дорогие и мы их очень любим"]},
-  task:{type:"hotspot",title:"Найди хранителя кухни",text:"На фотографии спрятан тот, кого ты должна найти. Нажми на место, где он находится.",image:"chapter1-kitchen.jpg",hotspot:{x:78,y:57,w:16,h:24}},video:"chapter1.mp4"},
+  task:{type:"hotspot",title:"Найди хранителя кухни",text:"На фотографии спрятан тот, кого ты должна найти. Нажми на место, где он находится.",image:"chapter1-kitchen.jpg",hotspot:{x:37.2,y:55.3,w:3.2,h:5.6}},video:"chapter1.mp4"},
  {type:"chapter",number:2,title:"Глава 2",
   quiz:{question:"Когда был наш первый поцелуй?",options:["19 ноября (вторник)","18 ноября (понедельник)","17 ноября (воскресенье)","20 ноября (среда)"],correct:1,feedback:["Неправильно.","18 ноября, примерно в 10:40 вечера ❤️","Неправильно.","Неправильно."]},
-  task:{type:"differences",title:"Найди отличия",text:"Найди все отличия между двумя фотографиями.",imageA:"chapter2-a.jpg",imageB:"chapter2-b.jpg",points:[{x:25,y:30},{x:72,y:25},{x:48,y:58},{x:80,y:72},{x:18,y:78}]},video:"chapter2.mp4"},
+  task:{type:"differences",title:"Найди отличия",text:"Найди все отличия между двумя фотографиями.",imageA:"chapter2-a.jpg",imageB:"chapter2-b.jpg",points:[{x:68.32,y:33.39},{x:42.58,y:66.88},{x:52.46,y:53.91},{x:73.91,y:58.23},{x:57.85,y:53.12},{x:81.37,y:50.05}]},video:"chapter2.mp4"},
  {type:"chapter",number:3,title:"Глава 3",
   quiz:{question:"Какой дом был бы для нас идеальным по моему мнению?",images:["house1.jpg","house2.jpg","house3.jpg","house4.jpg"],options:["Дом №1","Дом №2","Дом №3","Дом №4"],correct:0,feedback:["Правильно.","Неправильно.","Неправильно.","Неправильно."]},
   task:{type:"puzzle",title:"Собери фотографию",text:"Собери фотографию из 12 частей. На телефоне выбирай деталь, затем клетку, куда её поставить.",tilesPath:"chapter3-puzzle",rows:3,cols:4},video:"chapter3.mp4"},
@@ -56,12 +56,21 @@ function render(){
  q.type==="welcome"?welcome(card,q):chapter(card,q);
 }
 function welcome(el,q){
- el.innerHTML=`<h1>${q.title}</h1><p>${q.text}</p><div id="media"></div><button class="primary" id="start">Начать ❤️</button>`;
- el.querySelector("#media").innerHTML=placeholder("media/videos/"+q.video,"Здесь будет приветственное видео");
+ el.innerHTML=`<h1>${q.title}</h1><button class="primary" id="start">Начать ❤️</button>`;
  el.querySelector("#start").onclick=()=>{
    startMusic();pauseMusic();
-   const m=el.querySelector("#media");m.innerHTML=`<video id="v" class="media" controls playsinline src="media/videos/${q.video}"></video>`;
-   const v=m.querySelector("video");v.play().catch(()=>{});v.onended=()=>{resumeMusic();const b=el.querySelector("#start");b.textContent="Далее →";b.onclick=next};
+   const b=el.querySelector("#start");
+   b.textContent="Открыть приветственное видео ▶️";
+   b.onclick=()=>{
+     const media=document.createElement("video");
+     media.className="media";media.controls=true;media.playsInline=true;
+     media.src="media/videos/"+q.video;
+     el.insertBefore(media,b);
+     b.textContent="Далее →";
+     b.onclick=()=>{if(media.ended){resumeMusic();next();}};
+     media.onended=()=>{resumeMusic();b.disabled=false;b.textContent="Далее →";};
+     media.play().catch(()=>{});
+   };
  };
 }
 function chapter(el,q){el.innerHTML=`<p class="small">${q.number} / 8</p><h2>${q.title}</h2><div id="stage"></div>`;quiz(el,q)}
@@ -121,26 +130,37 @@ function differences(el,q,t){
  let found=new Set();s.querySelectorAll(".diff-point").forEach(b=>b.onclick=()=>{let i=+b.dataset.i;if(found.has(i))return;found.add(i);b.classList.add("found");s.querySelector("#c").textContent=`Найдено: ${found.size}/${t.points.length}`;if(found.size===t.points.length)setTimeout(()=>success(el,q),300)})
 }
 function puzzleTask(el,q,t){
- const s=el.querySelector("#stage"),n=t.rows*t.cols;
+ const n=t.rows*t.cols;
  puzzle={slots:Array(n).fill(null),bank:Array.from({length:n},(_,i)=>i).sort(()=>Math.random()-.5)};
- drawPuzzle(el,q,t)
+ drawPuzzle(el,q,t);
 }
-function puzzleTile(t,i){return `media/images/${t.tilesPath}/${String(i).padStart(2,"0")}.jpg`}
 function drawPuzzle(el,q,t){
- const s=el.querySelector("#stage"),n=t.rows*t.cols;
- s.innerHTML=`<p>${t.text}</p><div class="puzzle">${puzzle.slots.map((v,i)=>`<button class="puzzle-slot" data-slot="${i}">${v===null?"":`<img src="${puzzleTile(t,v)}" alt="Часть пазла">`}</button>`).join("")}</div><p class="small">Выбери деталь, затем нажми клетку, куда её поставить.</p><div class="puzzle-bank">${puzzle.bank.map(v=>`<button class="puzzle-piece" data-piece="${v}"><img src="${puzzleTile(t,v)}" alt="Деталь пазла"></button>`).join("")}</div><div class="message" id="msg"></div>`;
+ const s=el.querySelector("#stage"),n=t.rows*t.cols,ratio=t.tileRatio||1;
+ s.innerHTML=`<p>${t.text}</p>
+ <div class="puzzle" style="grid-template-columns:repeat(${t.cols},1fr);">
+ ${puzzle.slots.map((v,i)=>`<button class="puzzle-slot" style="aspect-ratio:${ratio}" data-slot="${i}">${v===null?"":`<img src="media/images/${t.piecesDir}/${String(v).padStart(2,"0")}.jpg">`}</button>`).join("")}
+ </div>
+ <p class="small">Выбери деталь, затем нажми клетку, куда её поставить.</p>
+ <div class="puzzle-bank" style="grid-template-columns:repeat(${t.cols},1fr)">
+ ${puzzle.bank.map(v=>`<button class="puzzle-piece" style="aspect-ratio:${ratio}" data-piece="${v}"><img src="media/images/${t.piecesDir}/${String(v).padStart(2,"0")}.jpg"></button>`).join("")}
+ </div>
+ <div class="message" id="msg"></div>`;
  let selected=null;
- s.querySelectorAll(".puzzle-piece").forEach(b=>b.onclick=()=>{selected=+b.dataset.piece;s.querySelectorAll(".puzzle-piece").forEach(x=>x.style.outline="");b.style.outline="3px solid var(--accent)"});
+ s.querySelectorAll(".puzzle-piece").forEach(b=>b.onclick=()=>{
+   selected=+b.dataset.piece;
+   s.querySelectorAll(".puzzle-piece").forEach(x=>x.classList.remove("chosen"));
+   b.classList.add("chosen");
+ });
  s.querySelectorAll(".puzzle-slot").forEach(b=>b.onclick=()=>{
    if(selected===null)return;
    const slot=+b.dataset.slot;
-   if(puzzle.slots[slot]!==null && !puzzle.bank.includes(puzzle.slots[slot])) puzzle.bank.push(puzzle.slots[slot]);
+   if(puzzle.slots[slot]!==null)puzzle.bank.push(puzzle.slots[slot]);
    puzzle.bank=puzzle.bank.filter(x=>x!==selected);
    puzzle.slots[slot]=selected;
    selected=null;
    drawPuzzle(el,q,t);
-   if(puzzle.slots.every((v,i)=>v===i))setTimeout(()=>success(el,q),400)
- })
+   if(puzzle.slots.every((v,i)=>v===i))setTimeout(()=>success(el,q),400);
+ });
 }
 function memoryTask(el,q,t){memory.cards=[...t.images,...t.images].sort(()=>Math.random()-.5);memory.open=[];memory.matched=[];memory.lock=false;drawMemory(el,q,t)}
 function drawMemory(el,q,t){
@@ -165,7 +185,7 @@ function phrase(el,q,t){
   let slots=Array(fixed.length).fill(null), selected=null;
   const target=["Обкончай","так","чтобы","когда","на","него","садишься","сперма","вытекала"];
   function draw(){
-    const sentence=fixed.map((f,i)=>f?`<span class="fixed-word">${f}</span>`:`<button class="drop-slot ${slots[i]?'filled':''}" data-slot="${i}">${slots[i]||"перетащи сюда"}</button>`).join("");
+    const sentence=fixed.map((f,i)=>f?`<span class="fixed-word">${f}</span>`:`<button class="drop-slot ${slots[i]?'filled':''}" data-slot="${i}">${slots[i]||""}</button>`).join("");
     s.innerHTML=`<p>${t.text}</p><div class="phrase-sentence">${sentence}</div><div class="word-bank">${words.filter(w=>!slots.includes(w)).map(w=>`<button class="word-chip" draggable="true" data-word="${w}">${w}</button>`).join("")}</div><div class="small phrase-hint">Перетащи слово пальцем в пустое место. На телефоне также можно нажать слово, затем нажать место.</div><button class="primary" id="checkPhrase">Проверить</button><div class="message" id="phraseMsg"></div>`;
     s.querySelectorAll('.word-chip').forEach(b=>{
       b.addEventListener('dragstart',e=>e.dataTransfer.setData('text/plain',b.dataset.word));
