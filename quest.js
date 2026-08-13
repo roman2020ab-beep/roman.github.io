@@ -257,16 +257,31 @@ function phrase(el,q,t){
   let slots=Array(fixed.length).fill(null), selected=null;
   const target=["Обкончай","так","чтобы","когда","на","него","садишься","сперма","вытекала"];
   function draw(){
-    const sentence=fixed.map((f,i)=>f?`<span class="fixed-word">${f}</span>`:`<button class="drop-slot ${slots[i]?'filled':''}" data-slot="${i}">${slots[i]||""}</button>`).join("");
-    s.innerHTML=`<p>${t.text}</p><div class="phrase-sentence">${sentence}</div><div class="word-bank">${words.filter(w=>!slots.includes(w)).map(w=>`<button class="word-chip" draggable="true" data-word="${w}">${w}</button>`).join("")}</div><div class="small phrase-hint">Перетащи слово пальцем в пустое место. На телефоне также можно нажать слово, затем нажать место.</div><button class="primary" id="checkPhrase">Проверить</button><div class="message" id="phraseMsg"></div>`;
+    const sentence=fixed.map((f,i)=>f
+      ?`<span class="fixed-word">${f}</span>`
+      :`<button class="drop-slot ${slots[i]?'filled':''}" data-slot="${i}" ${slots[i]?'draggable="true"':''}>${slots[i]||""}</button>`
+    ).join("");
+    s.innerHTML=`<p>${t.text}</p><div class="phrase-sentence">${sentence}</div><div class="word-bank">${words.filter(w=>!slots.includes(w)).map(w=>`<button class="word-chip" draggable="true" data-word="${w}">${w}</button>`).join("")}</div><div class="small phrase-hint">Перетаскивай слова в предложение. Уже поставленные слова тоже можно перетаскивать друг на друга, чтобы менять их местами.</div><button class="primary" id="checkPhrase">Проверить</button><div class="message" id="phraseMsg"></div>`;
     s.querySelectorAll('.word-chip').forEach(b=>{
-      b.addEventListener('dragstart',e=>e.dataTransfer.setData('text/plain',b.dataset.word));
+      b.addEventListener('dragstart',e=>e.dataTransfer.setData('text/plain',`word:${b.dataset.word}`));
       b.addEventListener('click',()=>{selected=b.dataset.word;b.classList.add('chosen')});
     });
     s.querySelectorAll('.drop-slot').forEach(b=>{
       const i=+b.dataset.slot;
       b.addEventListener('dragover',e=>e.preventDefault());
-      b.addEventListener('drop',e=>{e.preventDefault(); place(i,e.dataTransfer.getData('text/plain')||selected); selected=null;});
+      b.addEventListener('dragstart',e=>{
+        if(slots[i]){
+          e.dataTransfer.setData('text/plain',`slot:${i}`);
+          e.dataTransfer.effectAllowed='move';
+        }
+      });
+      b.addEventListener('drop',e=>{
+        e.preventDefault();
+        const data=e.dataTransfer.getData('text/plain');
+        if(data.startsWith('slot:')) swap(+data.slice(5),i);
+        else place(i,data.startsWith('word:')?data.slice(5):(data||selected));
+        selected=null;
+      });
       b.addEventListener('click',()=>{if(selected){place(i,selected);selected=null;}});
     });
     s.querySelector('#checkPhrase').onclick=()=>{
@@ -275,6 +290,7 @@ function phrase(el,q,t){
     };
   }
   function place(i,w){ if(!w||!words.includes(w))return; const old=slots.indexOf(w); if(old>=0)slots[old]=null; slots[i]=w; draw(); }
+  function swap(a,b){ if(a===b||slots[a]==null)return; [slots[a],slots[b]]=[slots[b],slots[a]]; draw(); }
   draw();
 }
 function completed(){app.innerHTML=`<main class="screen"><section class="card final"><div class="heart">❤️</div><h1>Квест завершён</h1><p>Ты прошла всё приключение.</p><button class="secondary" id="r">Начать квест заново</button></section></main>`;document.getElementById("r").onclick=()=>{localStorage.removeItem("quest_current");localStorage.removeItem("quest_completed");location.reload()}}
