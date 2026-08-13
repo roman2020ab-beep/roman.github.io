@@ -30,10 +30,10 @@ const QUEST=[
   task:{type:"audioQuiz",title:"Угадай звук",text:"Прослушай запись и определи, где упал мячик.",audio:"ball.mp3",options:["Кухня","Ванная комната","Большая комната","Балкон"],correct:3,feedback:["Неправильно.","Неправильно.","Неправильно.","Правильно."]},video:"chapter6.mp4"},
  {type:"chapter",number:7,title:"Глава 7",
   quiz:{question:"Чтобы я выбрал?",options:["Потерять зрение","Потерять слух","Потерять левую руку","Потерять ногу"],correct:3,feedback:["Неправильно.","Неправильно.","Неправильно.","Правильно."]},
-  task:{type:"sequence",title:"Расставь события по порядку",text:"Поставь события в правильной хронологической последовательности.",items:["1 раз сходили в кино","Начало переписки в ВК","1 раз сходили в театр","Знакомство с родителями","Подарил Лабубу"],correctOrder:["Начало переписки в ВК","1 раз сходили в кино","1 раз сходили в театр","Знакомство с родителями","Подарил Лабубу"]},video:"chapter7.mp4"},
+  task:{type:"sequence",title:"Расставь события по порядку",text:"Поставь события в правильной хронологической последовательности.",items:["1 раз сходили в кино","Начало переписки в ВК","1 раз сходили в театр","Знакомство с родителями","Подарил Лабубу"],correctOrder:["1 раз сходили в кино","Начало переписки в ВК","1 раз сходили в театр","Знакомство с родителями","Подарил Лабубу"]},video:"chapter7.mp4"},
  {type:"chapter",number:8,title:"Глава 8",
   quiz:{question:"Кто больше написал «люблю» по отношению к другому и сколько раз (в переписке Telegram)?",options:["Ты — 23 раза","Ты — 61 раз","Я — 34 раза","Я — 57 раз"],correct:3,feedback:["Неправильно.","Неправильно.","Неправильно.","Правильно."]},
-  task:{type:"phrase",title:"Составь фразу",text:"Введи слова по одному в каждое поле. Порядок слов должен быть правильным.",phrase:"Обкончай так,чтобы когда на него садишься,сперма вытекала"},video:"chapter8.mp4"}
+  task:{type:"phrase",title:"Составь фразу",text:"Два слова уже стоят на своих местах. Перетащи остальные слова в предложение, чтобы собрать фразу полностью.",fixedWords:["Обкончай","так,чтобы"],words:["когда","на","него","садишься,","сперма","вытекала"]},video:"chapter8.mp4"}
 ];
 
 const app=document.getElementById("app");
@@ -71,19 +71,45 @@ function quiz(el,q){
  else s.innerHTML=`<p>${z.question}</p><div class="answers">${z.options.map((x,i)=>`<button class="answer" data-i="${i}">${x}</button>`).join("")}</div><div class="message" id="msg"></div>`;
  s.querySelectorAll("[data-i]").forEach(b=>b.onclick=()=>{
   const i=+b.dataset.i,m=s.querySelector("#msg");
-  if(i===z.correct){b.classList.add("selected-good");m.className="message good";m.textContent=z.feedback[i]||"Правильно.";setTimeout(()=>task(el,q),650)}
-  else{b.classList.add("selected-bad");m.className="message bad";m.textContent=z.feedback[i]||"Неправильно.";setTimeout(()=>b.classList.remove("selected-bad"),700)}
+  if(i===z.correct){
+    b.classList.add("selected-good");
+    m.className="message good";
+    m.innerHTML=`${z.feedback[i]||"Правильно."}<br><button class="secondary" id="quizNext">Далее →</button>`;
+    s.querySelectorAll("[data-i]").forEach(x=>x.disabled=true);
+    s.querySelector("#quizNext").onclick=()=>task(el,q);
+  }else{
+    b.classList.add("selected-bad");
+    m.className="message bad";
+    m.textContent=z.feedback[i]||"Неправильно.";
+    setTimeout(()=>b.classList.remove("selected-bad"),700)
+  }
  });
 }
 function task(el,q){
  const s=el.querySelector("#stage"),t=q.task;
  if(t.type==="hotspot")hotspot(el,q,t);if(t.type==="differences")differences(el,q,t);if(t.type==="puzzle")puzzleTask(el,q,t);if(t.type==="memory")memoryTask(el,q,t);if(t.type==="rebus")rebus(el,q,t);if(t.type==="audioQuiz")audioQuiz(el,q,t);if(t.type==="sequence")sequence(el,q,t);if(t.type==="phrase")phrase(el,q,t)
 }
-function success(el,q){el.querySelector("#stage").innerHTML=`<div class="success-anim"><div class="check">✓</div><span class="spark" style="left:20%;top:65%">✦</span><span class="spark" style="left:45%;top:70%;animation-delay:.1s">♥</span><span class="spark" style="left:70%;top:55%;animation-delay:.2s">✦</span><span class="spark" style="left:82%;top:70%;animation-delay:.3s">♥</span></div><button class="primary" id="open">Открыть видео ▶️</button>`;el.querySelector("#open").onclick=()=>video(el,q)}
+function success(el,q){
+ el.querySelector("#stage").innerHTML=`<div class="success-anim"><div class="check">✓</div><span class="spark" style="left:20%;top:65%">✦</span><span class="spark" style="left:45%;top:70%;animation-delay:.1s">♥</span><span class="spark" style="left:70%;top:55%;animation-delay:.2s">✦</span><span class="spark" style="left:82%;top:70%;animation-delay:.3s">♥</span></div><button class="primary" id="taskNext">Далее →</button>`;
+ el.querySelector("#taskNext").onclick=()=>videoOpenStage(el,q);
+}
+function videoOpenStage(el,q){
+ pauseMusic();
+ const s=el.querySelector("#stage");
+ s.innerHTML=`<p>Следующий этап</p><button class="primary" id="openVideo">Открыть видео ▶️</button>`;
+ s.querySelector("#openVideo").onclick=()=>video(el,q);
+}
 function video(el,q){
- pauseMusic();const s=el.querySelector("#stage");s.innerHTML=`<div id="vh">${placeholder("media/videos/"+q.video,"Здесь будет видео")}</div><button class="primary hidden" id="go">Далее →</button>`;
- const h=s.querySelector("#vh");h.innerHTML=`<video id="cv" class="media" controls playsinline src="media/videos/${q.video}"></video>`;
- const v=s.querySelector("#cv");v.play().catch(()=>{});v.onended=()=>{resumeMusic();s.querySelector("#go").classList.remove("hidden")};s.querySelector("#go").onclick=next;
+ pauseMusic();
+ const s=el.querySelector("#stage");
+ s.innerHTML=`<h2>Видео</h2><div id="vh">${placeholder("media/videos/"+q.video,"Здесь будет видео")}</div><button class="primary hidden" id="go">Далее →</button>`;
+ const h=s.querySelector("#vh");
+ h.innerHTML=`<video id="cv" class="media" controls playsinline preload="metadata" src="media/videos/${q.video}"></video>`;
+ const v=s.querySelector("#cv");
+ v.onplay=()=>pauseMusic();
+ v.onended=()=>{resumeMusic();s.querySelector("#go").classList.remove("hidden")};
+ // The actual video is opened/started by the previous "Открыть видео" button.
+ v.load();
 }
 function hotspot(el,q,t){
  const s=el.querySelector("#stage");s.innerHTML=`<p>${t.text}</p><div class="photo-wrap" id="hw"><img src="media/images/${t.image}" onerror="this.style.display='none'"><button class="hotspot" id="hs"></button></div><div class="message" id="msg"></div>`;
@@ -135,8 +161,89 @@ function sequence(el,q,t){
  s.querySelector("#b").onclick=()=>{let picked=Array(5).fill(null);s.querySelectorAll(".seq-item").forEach(r=>picked[+r.querySelector("select").value-1]=r.querySelector("span:nth-child(2)").textContent);let ok=picked.every((x,i)=>x===t.correctOrder[i]),m=s.querySelector("#m");m.className=ok?"message good":"message bad";m.textContent=ok?"Правильно.":"Неправильно. Попробуй ещё раз.";if(ok)setTimeout(()=>success(el,q),450)}
 }
 function phrase(el,q,t){
- const s=el.querySelector("#stage"),words=t.phrase.trim().split(/\s+/);s.innerHTML=`<p>${t.text}</p><div class="word-builder">${words.map((_,i)=>`<div class="word-row"><span>${i+1}.</span><input></div>`).join("")}</div><button class="primary" id="b">Проверить</button><div class="message" id="m"></div>`;
- s.querySelector("#b").onclick=()=>{let v=[...s.querySelectorAll("input")].map(x=>x.value.trim()).join(" ").replaceAll(",","").replace(/\s+/g," ").trim().toLowerCase(),target=t.phrase.replaceAll(",","").replace(/\s+/g," ").trim().toLowerCase(),m=s.querySelector("#m");m.className=v===target?"message good":"message bad";m.textContent=v===target?"Правильно.":"Неправильно.";if(v===target)setTimeout(()=>success(el,q),450)}
+ const s=el.querySelector("#stage");
+ const fixed=t.fixedWords||[];
+ const words=t.words||[];
+ let slots=Array(words.length).fill(null);
+ let selectedWord=null;
+
+ function normalize(v){return v.replace(/\s+/g," ").trim().toLowerCase();}
+ function allCorrect(){return slots.every((v,i)=>v===words[i]);}
+
+ function draw(){
+   s.innerHTML=`<p>${t.text}</p>
+   <div class="phrase-sentence" id="phraseSentence">
+     <span class="fixed-word">${fixed[0]||""}</span>
+     <span class="drop-slot" data-slot="0"></span>
+     <span class="fixed-word">${fixed[1]||""}</span>
+     ${slots.slice(0).map((v,i)=>i===0?"":`<span class="drop-slot" data-slot="${i}"></span>`).join("")}
+   </div>
+   <div class="word-bank" id="wordBank">
+     ${slots.map((v,i)=>v?`<button class="word-chip placed" data-slot="${i}">${v}</button>`:"").join("")}
+     ${words.map((w,i)=>slots.includes(w)?"":`<button class="word-chip" draggable="true" data-word="${w}" data-word-index="${i}">${w}</button>`).join("")}
+   </div>
+   <div class="small phrase-hint">Можно перетаскивать слова пальцем. На телефоне также можно нажать на слово, а затем на пустое место.</div>
+   <button class="primary" id="checkPhrase">Проверить</button>
+   <div class="message" id="phraseMsg"></div>`;
+
+   // Drag + tap fallback for mobile.
+   const bank=s.querySelector("#wordBank");
+   let dragging=null;
+   bank.querySelectorAll(".word-chip:not(.placed)").forEach(chip=>{
+     chip.addEventListener("pointerdown",()=>{dragging=chip});
+     chip.addEventListener("click",()=>{
+       selectedWord=chip.dataset.word;
+       bank.querySelectorAll(".word-chip").forEach(x=>x.classList.remove("chosen"));
+       chip.classList.add("chosen");
+     });
+     chip.addEventListener("dragstart",e=>{
+       e.dataTransfer.setData("text/plain",chip.dataset.word);
+       dragging=chip;
+     });
+   });
+
+   s.querySelectorAll(".drop-slot").forEach(slot=>{
+     const idx=Number(slot.dataset.slot);
+     slot.addEventListener("dragover",e=>e.preventDefault());
+     slot.addEventListener("drop",e=>{
+       e.preventDefault();
+       const word=e.dataTransfer.getData("text/plain")||dragging?.dataset.word;
+       placeWord(idx,word);
+     });
+     slot.addEventListener("pointerup",()=>{
+       if(selectedWord){placeWord(idx,selectedWord);selectedWord=null}
+     });
+     slot.addEventListener("click",()=>{
+       if(selectedWord){placeWord(idx,selectedWord);selectedWord=null}
+     });
+   });
+
+   s.querySelectorAll(".word-chip.placed").forEach(chip=>{
+     chip.addEventListener("click",()=>{
+       const idx=Number(chip.dataset.slot);
+       slots[idx]=null; draw();
+     });
+   });
+
+   s.querySelector("#checkPhrase").onclick=()=>{
+     const m=s.querySelector("#phraseMsg");
+     if(allCorrect()){
+       m.className="message good";m.textContent="Правильно.";
+       setTimeout(()=>success(el,q),450);
+     }else{
+       m.className="message bad";m.textContent="Неправильно. Попробуй ещё раз.";
+     }
+   };
+ }
+
+ function placeWord(idx,word){
+   if(!word||!words.includes(word))return;
+   const prev=slots.indexOf(word);
+   if(prev!==-1)slots[prev]=null;
+   slots[idx]=word;
+   draw();
+ }
+ draw();
 }
 function completed(){app.innerHTML=`<main class="screen"><section class="card final"><div class="heart">❤️</div><h1>Квест завершён</h1><p>Ты прошла всё приключение.</p><button class="secondary" id="r">Начать квест заново</button></section></main>`;document.getElementById("r").onclick=()=>{localStorage.removeItem("quest_current");localStorage.removeItem("quest_completed");location.reload()}}
 render();

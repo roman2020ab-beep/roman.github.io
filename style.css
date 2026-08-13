@@ -20,3 +20,11 @@ button.primary{background:var(--accent);color:#19131a;border:0}button.secondary{
 .final{text-align:center}.heart{font-size:64px;animation:pulse 1.3s infinite}.hidden{display:none!important}
 @keyframes pop{0%{transform:scale(.2);opacity:0}70%{transform:scale(1.15)}100%{transform:scale(1);opacity:1}}@keyframes float{0%{transform:translateY(40px);opacity:0}30%{opacity:1}100%{transform:translateY(-90px);opacity:0}}@keyframes pulse{50%{transform:scale(1.1)}}
 @media(min-width:650px){.card{padding:34px}.diff-wrap{grid-template-columns:1fr 1fr}}
+.phrase-sentence{display:flex;flex-wrap:wrap;align-items:center;gap:8px;min-height:62px;padding:14px;background:#222230;border-radius:15px;margin-top:18px;line-height:1.8}
+.fixed-word{font-weight:bold;color:var(--text)}
+.drop-slot{display:inline-flex;align-items:center;justify-content:center;min-width:86px;height:42px;padding:0 10px;border-bottom:2px dashed var(--accent);color:var(--accent);background:#181820;border-radius:8px}
+.drop-slot:after{content:"перетащи сюда";font-size:12px;color:var(--muted)}
+.word-bank{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+.word-chip{width:auto;min-height:44px;margin:0;padding:9px 13px;border-radius:12px;background:#2a2a39;color:var(--text);border:1px solid #48485a;cursor:grab}
+.word-chip.placed{background:#453444}.word-chip.chosen{outline:2px solid var(--accent)}
+.phrase-hint{margin-top:10px}
