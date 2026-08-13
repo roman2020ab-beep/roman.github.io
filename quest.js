@@ -18,7 +18,7 @@ const QUEST=[
   task:{type:"differences",title:"Найди отличия",text:"Найди все отличия между двумя фотографиями.",imageA:"chapter2-a.jpg",imageB:"chapter2-b.jpg",points:[{x:68.32,y:33.39},{x:42.58,y:66.88},{x:52.46,y:53.91},{x:73.91,y:58.23},{x:57.85,y:53.12},{x:81.37,y:50.05}]},video:"chapter2.mp4"},
  {type:"chapter",number:3,title:"Глава 3",
   quiz:{question:"Какой дом был бы для нас идеальным по моему мнению?",images:["house1.jpg","house2.jpg","house3.jpg","house4.jpg"],options:["Дом №1","Дом №2","Дом №3","Дом №4"],correct:0,feedback:["Правильно.","Неправильно.","Неправильно.","Неправильно."]},
-  task:{type:"puzzle",title:"Собери фотографию",text:"Собери фотографию из 12 частей. На телефоне выбирай деталь, затем клетку, куда её поставить.",tilesPath:"chapter3-puzzle",rows:3,cols:4},video:"chapter3.mp4"},
+  task:{type:"puzzle",title:"Собери фотографию",text:"Собери фотографию из 18 частей. На телефоне выбирай деталь, затем клетку, куда её поставить.",tilesPath:"chapter3-puzzle-pieces",rows:6,cols:3},video:"chapter3.mp4"},
  {type:"chapter",number:4,title:"Глава 4",
   quiz:{question:"Кто первый в переписке написал, что любит и было ли это с сердечками?",options:["Ты с сердечками","Я с сердечками","Ты без сердечек","Я без сердечек"],correct:2,feedback:["Неправильно.","Неправильно.","Правильно.","Неправильно."]},
   task:{type:"memory",title:"Memory",text:"Найди все 9 пар фотографий.",images:["memory1.jpg","memory2.jpg","memory3.jpg","memory4.jpg","memory5.jpg","memory6.jpg","memory7.jpg","memory8.jpg","memory9.jpg"]},video:"chapter4.mp4"},
@@ -43,8 +43,30 @@ let memory={cards:[],open:[],matched:[],lock:false},puzzle={slots:[],bank:[]};
 
 function save(){if(CONFIG.saveProgress)localStorage.setItem("quest_current",String(current))}
 function next(){if(current<QUEST.length-1){current++;save();render();scrollTo(0,0)}else{localStorage.setItem("quest_completed","1");completed()}}
-function startMusic(){if(musicStarted)return;musicStarted=true;music.volume=CONFIG.musicVolume;music.onended=()=>{musicIndex=(musicIndex+1)%CONFIG.music.length;playMusic()};playMusic()}
-function playMusic(){if(!musicStarted||musicPaused)return;music.src="media/music/"+CONFIG.music[musicIndex];music.play().catch(()=>{})}
+function startMusic(){
+ if(musicStarted)return;
+ musicStarted=true;
+ music.volume=CONFIG.musicVolume;
+ music.onended=()=>{
+   musicIndex=(musicIndex+1)%CONFIG.music.length;
+   music.src="media/music/"+CONFIG.music[musicIndex];
+   music.currentTime=0;
+   music.play().catch(()=>{});
+ };
+ music.src="media/music/"+CONFIG.music[musicIndex];
+ music.currentTime=0;
+ music.play().catch(()=>{});
+}
+function playMusic(){
+ if(!musicStarted||musicPaused)return;
+ const wanted="media/music/"+CONFIG.music[musicIndex];
+ // Do not assign src again when resuming: assigning src resets currentTime to 0.
+ if(!music.getAttribute("src") || !music.getAttribute("src").endsWith(CONFIG.music[musicIndex])){
+   music.src=wanted;
+   music.currentTime=0;
+ }
+ music.play().catch(()=>{});
+}
 function pauseMusic(){musicPaused=true;music.pause()}
 function resumeMusic(){musicPaused=false;playMusic()}
 function placeholder(path,label="Добавь файл"){return `<div class="placeholder"><div><strong>${label}</strong><br><span class="small">${path}</span></div></div>`}
@@ -135,14 +157,14 @@ function puzzleTask(el,q,t){
  drawPuzzle(el,q,t);
 }
 function drawPuzzle(el,q,t){
- const s=el.querySelector("#stage"),n=t.rows*t.cols,ratio=t.tileRatio||1;
+ const s=el.querySelector("#stage"),n=t.rows*t.cols;
  s.innerHTML=`<p>${t.text}</p>
- <div class="puzzle" style="grid-template-columns:repeat(${t.cols},1fr);">
- ${puzzle.slots.map((v,i)=>`<button class="puzzle-slot" style="aspect-ratio:${ratio}" data-slot="${i}">${v===null?"":`<img src="media/images/${t.piecesDir}/${String(v).padStart(2,"0")}.jpg">`}</button>`).join("")}
+ <div class="puzzle" style="grid-template-columns:repeat(${t.cols},1fr)">
+ ${puzzle.slots.map((v,i)=>`<button class="puzzle-slot" data-slot="${i}">${v===null?"":`<img src="media/images/${t.tilesPath}/${String(v).padStart(2,"0")}.jpg" alt="">`}</button>`).join("")}
  </div>
  <p class="small">Выбери деталь, затем нажми клетку, куда её поставить.</p>
  <div class="puzzle-bank" style="grid-template-columns:repeat(${t.cols},1fr)">
- ${puzzle.bank.map(v=>`<button class="puzzle-piece" style="aspect-ratio:${ratio}" data-piece="${v}"><img src="media/images/${t.piecesDir}/${String(v).padStart(2,"0")}.jpg"></button>`).join("")}
+ ${puzzle.bank.map(v=>`<button class="puzzle-piece" data-piece="${v}"><img src="media/images/${t.tilesPath}/${String(v).padStart(2,"0")}.jpg" alt=""></button>`).join("")}
  </div>
  <div class="message" id="msg"></div>`;
  let selected=null;
@@ -154,12 +176,13 @@ function drawPuzzle(el,q,t){
  s.querySelectorAll(".puzzle-slot").forEach(b=>b.onclick=()=>{
    if(selected===null)return;
    const slot=+b.dataset.slot;
-   if(puzzle.slots[slot]!==null)puzzle.bank.push(puzzle.slots[slot]);
+   const previous=puzzle.slots[slot];
+   if(previous!==null && !puzzle.bank.includes(previous))puzzle.bank.push(previous);
    puzzle.bank=puzzle.bank.filter(x=>x!==selected);
    puzzle.slots[slot]=selected;
    selected=null;
+   if(puzzle.slots.every((v,i)=>v===i)){setTimeout(()=>success(el,q),400);return;}
    drawPuzzle(el,q,t);
-   if(puzzle.slots.every((v,i)=>v===i))setTimeout(()=>success(el,q),400);
  });
 }
 function memoryTask(el,q,t){memory.cards=[...t.images,...t.images].sort(()=>Math.random()-.5);memory.open=[];memory.matched=[];memory.lock=false;drawMemory(el,q,t)}
