@@ -15,7 +15,13 @@ const QUEST=[
   task:{type:"hotspot",title:"Найди хранителя кухни",text:"На фотографии спрятан тот, кого ты должна найти. Нажми на место, где он находится.",image:"chapter1-kitchen.jpg",hotspot:{x:37.2,y:55.3,w:3.2,h:5.6}},video:"chapter1.mp4"},
  {type:"chapter",number:2,title:"Глава 2",
   quiz:{question:"Когда был наш первый поцелуй?",options:["19 ноября (вторник)","18 ноября (понедельник)","17 ноября (воскресенье)","20 ноября (среда)"],correct:1,feedback:["Неправильно.","18 ноября, примерно в 10:40 вечера ❤️","Неправильно.","Неправильно."]},
-  task:{type:"differences",title:"Найди отличия",text:"Найди все отличия между двумя фотографиями.",imageA:"chapter2-a.jpg",imageB:"chapter2-b.jpg",points:[{x:68.32,y:33.39},{x:42.58,y:66.88},{x:52.46,y:53.91},{x:73.91,y:58.23},{x:57.85,y:53.12},{x:81.37,y:50.05}]},video:"chapter2.mp4"},
+  task:{type:"differences",title:"Найди отличия",text:"Найди все отличия между двумя фотографиями.",imageA:"chapter2-a.jpg",imageB:"chapter2-b.jpg",points:[
+   {x:42.0,y:13.1,w:8.0,h:10.3},
+   {x:55.9,y:13.5,w:7.6,h:9.8},
+   {x:27.6,y:51.3,w:6.8,h:9.3},
+   {x:75.4,y:55.5,w:7.2,h:6.6},
+   {x:18.8,y:81.6,w:8.7,h:9.8}
+  ]},video:"chapter2.mp4"},
  {type:"chapter",number:3,title:"Глава 3",
   quiz:{question:"Какой дом был бы для нас идеальным по моему мнению?",images:["house1.jpg","house2.jpg","house3.jpg","house4.jpg"],options:["Дом №1","Дом №2","Дом №3","Дом №4"],correct:0,feedback:["Правильно.","Неправильно.","Неправильно.","Неправильно."]},
   task:{type:"puzzle",title:"Собери фотографию",text:"Собери фотографию из 18 частей. На телефоне выбирай деталь, затем клетку, куда её поставить.",tilesPath:"chapter3-puzzle-pieces",rows:6,cols:3},video:"chapter3.mp4"},
@@ -156,8 +162,19 @@ function hotspot(el,q,t){
  s.querySelector("#hw").onclick=e=>{const r=e.currentTarget.getBoundingClientRect(),x=(e.clientX-r.left)/r.width*100,y=(e.clientY-r.top)/r.height*100;if(x>=p.x&&x<=p.x+p.w&&y>=p.y&&y<=p.y+p.h)success(el,q);else s.querySelector("#msg").textContent="Здесь никого нет 👀"}
 }
 function differences(el,q,t){
- const s=el.querySelector("#stage");s.innerHTML=`<p>${t.text}</p><div class="diff-wrap"><div class="diff-photo"><img src="media/images/${t.imageA}">${t.points.map((p,i)=>`<button class="diff-point" data-i="${i}" style="left:${p.x}%;top:${p.y}%"></button>`).join("")}</div><div class="diff-photo"><img src="media/images/${t.imageB}"></div></div><div class="counter" id="c">Найдено: 0/${t.points.length}</div>`;
- let found=new Set();s.querySelectorAll(".diff-point").forEach(b=>b.onclick=()=>{let i=+b.dataset.i;if(found.has(i))return;found.add(i);b.classList.add("found");s.querySelector("#c").textContent=`Найдено: ${found.size}/${t.points.length}`;if(found.size===t.points.length)setTimeout(()=>success(el,q),300)})
+ const s=el.querySelector("#stage");
+ const zone=(p,i)=>`<button class="diff-point" data-i="${i}" aria-label="Отличие ${i+1}" style="left:${p.x}%;top:${p.y}%;width:${p.w}%;height:${p.h}%"></button>`;
+ s.innerHTML=`<p>${t.text}</p><div class="diff-wrap"><div class="diff-photo"><img src="media/images/${t.imageA}">${t.points.map(zone).join("")}</div><div class="diff-photo"><img src="media/images/${t.imageB}">${t.points.map(zone).join("")}</div></div><div class="counter" id="c">Найдено: 0/${t.points.length}</div>`;
+ let found=new Set();
+ const mark=(b)=>{
+   const i=+b.dataset.i;
+   if(found.has(i))return;
+   found.add(i);
+   s.querySelectorAll(`.diff-point[data-i="${i}"]`).forEach(x=>x.classList.add("found"));
+   s.querySelector("#c").textContent=`Найдено: ${found.size}/${t.points.length}`;
+   if(found.size===t.points.length)setTimeout(()=>success(el,q),350);
+ };
+ s.querySelectorAll(".diff-point").forEach(b=>b.onclick=()=>mark(b));
 }
 function puzzleTask(el,q,t){
  const n=t.rows*t.cols;
