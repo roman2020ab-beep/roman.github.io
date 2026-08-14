@@ -192,14 +192,24 @@ function drawPuzzle(el,q,t){
  ${puzzle.bank.map(v=>`<button class="puzzle-piece" data-piece="${v}" draggable="true"><img draggable="false" src="media/images/${t.tilesPath}/${String(v).padStart(2,"0")}.jpg" alt=""></button>`).join("")}
  </div>
  <div class="message" id="msg"></div>`;
- let selected=null;
+ let selected=null, selectedSlot=null;
  const checkSolved=()=>puzzle.slots.every((v,i)=>v===i);
  const finishIfSolved=()=>{if(checkSolved()){setTimeout(()=>success(el,q),400);return true}return false};
  const setChosen=(piece)=>{
    selected=piece;
+   selectedSlot=null;
    s.querySelectorAll(".puzzle-piece").forEach(x=>x.classList.remove("chosen"));
+   s.querySelectorAll(".puzzle-slot").forEach(x=>x.classList.remove("chosen"));
    const bankBtn=s.querySelector(`.puzzle-piece[data-piece="${piece}"]`);
    if(bankBtn)bankBtn.classList.add("chosen");
+ };
+ const setChosenSlot=(slot)=>{
+   if(puzzle.slots[slot]===null)return;
+   selectedSlot=slot;
+   selected=null;
+   s.querySelectorAll(".puzzle-piece,.puzzle-slot").forEach(x=>x.classList.remove("chosen"));
+   const slotBtn=s.querySelector(`.puzzle-slot[data-slot="${slot}"]`);
+   if(slotBtn)slotBtn.classList.add("chosen");
  };
  const moveBankPieceToSlot=(piece,slot)=>{
    const previous=puzzle.slots[slot];
@@ -215,7 +225,17 @@ function drawPuzzle(el,q,t){
  s.querySelectorAll(".puzzle-slot").forEach(b=>{
    const slot=+b.dataset.slot;
    b.onclick=()=>{
-     if(selected===null)return;
+     if(selectedSlot!==null){
+       if(selectedSlot===slot)return;
+       [puzzle.slots[selectedSlot],puzzle.slots[slot]]=[puzzle.slots[slot],puzzle.slots[selectedSlot]];
+       selectedSlot=null;
+       if(!finishIfSolved())drawPuzzle(el,q,t);
+       return;
+     }
+     if(selected===null){
+       if(puzzle.slots[slot]!==null)setChosenSlot(slot);
+       return;
+     }
      moveBankPieceToSlot(selected,slot);
      selected=null;
      if(!finishIfSolved())drawPuzzle(el,q,t);
@@ -261,7 +281,7 @@ function rebus(el,q,t){
  s.querySelector("#b").onclick=()=>{let v=s.querySelector("#a").value.trim().toLowerCase().replaceAll(" ",""),m=s.querySelector("#m");if(v===t.answer){m.className="message good";m.textContent="Правильно.";setTimeout(()=>success(el,q),450)}else{m.className="message bad";m.textContent="Неправильно."}}
 }
 function audioQuiz(el,q,t){
- const s=el.querySelector("#stage");s.innerHTML=`<p>${t.text}</p><div class="audio-box"><audio id="a" controls src="media/audio/${t.audio}"></audio></div><p class="small">Во время прослушивания фоновая музыка будет на паузе.</p><div class="answers">${t.options.map((x,i)=>`<button class="answer" data-i="${i}">${x}</button>`).join("")}</div><div class="message" id="m"></div>`;
+ const s=el.querySelector("#stage");s.innerHTML=`<p>${t.text}</p><div class="audio-box"><audio id="a" controls src="media/audio/${t.audio}"></audio></div><p class="small">бибабибоп</p><div class="answers">${t.options.map((x,i)=>`<button class="answer" data-i="${i}">${x}</button>`).join("")}</div><div class="message" id="m"></div>`;
  const a=s.querySelector("audio");a.onplay=pauseMusic;a.onpause=()=>{if(!a.ended)resumeMusic()};a.onended=resumeMusic;
  s.querySelectorAll(".answer").forEach(b=>b.onclick=()=>{let i=+b.dataset.i,m=s.querySelector("#m");m.className=i===t.correct?"message good":"message bad";m.textContent=t.feedback[i];if(i===t.correct)setTimeout(()=>success(el,q),450)})
 }
@@ -271,7 +291,7 @@ function sequence(el,q,t){
 }
 function phrase(el,q,t){
   const s=el.querySelector("#stage"), fixed=t.fixedWords||[], words=t.words||[];
-  let slots=Array(fixed.length).fill(null), selected=null;
+  let slots=Array(fixed.length).fill(null), selected=null, selectedSlot=null;
   const target=["Обкончай","так","чтобы","когда","на","него","садишься","сперма","вытекала"];
   function draw(){
     const sentence=fixed.map((f,i)=>f
@@ -281,7 +301,12 @@ function phrase(el,q,t){
     s.innerHTML=`<p>${t.text}</p><div class="phrase-sentence">${sentence}</div><div class="word-bank">${words.filter(w=>!slots.includes(w)).map(w=>`<button class="word-chip" draggable="true" data-word="${w}">${w}</button>`).join("")}</div><div class="small phrase-hint">Перетаскивай слова в предложение. Уже поставленные слова тоже можно перетаскивать друг на друга, чтобы менять их местами.</div><button class="primary" id="checkPhrase">Проверить</button><div class="message" id="phraseMsg"></div>`;
     s.querySelectorAll('.word-chip').forEach(b=>{
       b.addEventListener('dragstart',e=>e.dataTransfer.setData('text/plain',`word:${b.dataset.word}`));
-      b.addEventListener('click',()=>{selected=b.dataset.word;b.classList.add('chosen')});
+      b.addEventListener('click',()=>{
+        selected=b.dataset.word;
+        selectedSlot=null;
+        s.querySelectorAll('.word-chip,.drop-slot').forEach(x=>x.classList.remove('chosen'));
+        b.classList.add('chosen');
+      });
     });
     s.querySelectorAll('.drop-slot').forEach(b=>{
       const i=+b.dataset.slot;
@@ -298,8 +323,26 @@ function phrase(el,q,t){
         if(data.startsWith('slot:')) swap(+data.slice(5),i);
         else place(i,data.startsWith('word:')?data.slice(5):(data||selected));
         selected=null;
+        selectedSlot=null;
       });
-      b.addEventListener('click',()=>{if(selected){place(i,selected);selected=null;}});
+      b.addEventListener('click',()=>{
+        if(selectedSlot!==null){
+          if(selectedSlot===i)return;
+          swap(selectedSlot,i);
+          selectedSlot=null;
+          return;
+        }
+        if(selected){
+          place(i,selected);
+          selected=null;
+          return;
+        }
+        if(slots[i]){
+          selectedSlot=i;
+          s.querySelectorAll('.word-chip,.drop-slot').forEach(x=>x.classList.remove('chosen'));
+          b.classList.add('chosen');
+        }
+      });
     });
     s.querySelector('#checkPhrase').onclick=()=>{
       const ok=slots.map((v,i)=>v||fixed[i]).every((v,i)=>v===target[i]);

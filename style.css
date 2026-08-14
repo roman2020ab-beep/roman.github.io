@@ -33,3 +33,7 @@ button.primary{background:var(--accent);color:#19131a;border:0}button.secondary{
 .word-chip.chosen{outline:3px solid var(--accent)}
 .puzzle-slot.filled{cursor:grab}.puzzle-slot.filled:active{cursor:grabbing}.puzzle-piece{cursor:grab}.puzzle-piece:active{cursor:grabbing}
 .drop-slot.filled{cursor:grab;user-select:none;-webkit-user-select:none;-webkit-user-drag:element}.drop-slot.filled:active{cursor:grabbing}
+.puzzle-slot.chosen,.drop-slot.chosen{outline:3px solid var(--accent);outline-offset:-3px}
+@media (hover:none), (pointer:coarse){
+  .puzzle-slot.filled,.puzzle-piece,.drop-slot.filled,.word-chip{touch-action:manipulation;-webkit-touch-callout:none}
+}
