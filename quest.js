@@ -298,7 +298,7 @@ function phrase(el,q,t){
       ?`<span class="fixed-word">${f}</span>`
       :`<button class="drop-slot ${slots[i]?'filled':''}" data-slot="${i}" ${slots[i]?'draggable="true"':''}>${slots[i]||""}</button>`
     ).join("");
-    s.innerHTML=`<p>${t.text}</p><div class="phrase-sentence">${sentence}</div><div class="word-bank">${words.filter(w=>!slots.includes(w)).map(w=>`<button class="word-chip" draggable="true" data-word="${w}">${w}</button>`).join("")}</div><div class="small phrase-hint">Перетаскивай слова в предложение. Уже поставленные слова тоже можно перетаскивать друг на друга, чтобы менять их местами.</div><button class="primary" id="checkPhrase">Проверить</button><div class="message" id="phraseMsg"></div>`;
+    s.innerHTML=`<p>${t.text}</p><div class="phrase-sentence">${sentence}</div><div class="word-bank">${words.filter(w=>!slots.includes(w)).map(w=>`<button class="word-chip" draggable="true" data-word="${w}">${w}</button>`).join("")}</div><div class="small phrase-hint">Люблю тебя</div><button class="primary" id="checkPhrase">Проверить</button><div class="message" id="phraseMsg"></div>`;
     s.querySelectorAll('.word-chip').forEach(b=>{
       b.addEventListener('dragstart',e=>e.dataTransfer.setData('text/plain',`word:${b.dataset.word}`));
       b.addEventListener('click',()=>{
